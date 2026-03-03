@@ -1,4 +1,4 @@
-name: Cloudflared-RDP-Fixed
+name: Cloudflared-RDP-Final
 
 on: 
   workflow_dispatch:
@@ -9,9 +9,12 @@ jobs:
     steps:
     - name: Configure Windows RDP
       run: |
+        # Enable RDP and set Firewall rules
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        
+        # Set Password for the runneradmin user
         $Password = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $Password
         
@@ -24,9 +27,5 @@ jobs:
       env:
         CF_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
       run: |
-        if (-not $env:CF_TOKEN) {
-          Write-Error "ERROR: CLOUDFLARE_TUNNEL_TOKEN is empty! Please check your GitHub Secrets."
-          exit 1
-        }
-        # We use --no-autoupdate to prevent the runner from hanging on updates
-        .\cloudflared.exe tunnel --no-autoupdate run --token "$env:TUNNEL_TOKEN"
+        # Start the tunnel in the background using your token
+        .\cloudflared.exe tunnel --no-autoupdate run --token "$env:CF_TOKEN"
